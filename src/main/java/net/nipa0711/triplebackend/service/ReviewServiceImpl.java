@@ -124,13 +124,13 @@ public class ReviewServiceImpl implements ReviewService {
                 newPoint++;
             }
 
-            int reviewIdx = reviewMapper.createReview(review);
-            System.out.println("reviewIdx : " + reviewIdx);
+            int createdResult = reviewMapper.createReview(review);
+            System.out.println("createdResult : " + createdResult);
             newPoint++;
 
             History history = new History();
             history.setUserId(userId);
-            String reviewContent = "Added new review - reviewIdx : " + reviewIdx;
+            String reviewContent = "Added new review about : " + placeId;
             if (newPoint == 1) {
                 currentPoint += newPoint;
                 reviewContent = reviewContent + " with text only. Point is " + currentPoint;
