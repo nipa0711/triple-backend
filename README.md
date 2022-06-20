@@ -33,3 +33,7 @@ POST /events
 }
 </code>
 </pre>
+<br>
+<br>
+DB 구조
+<img src="https://user-images.githubusercontent.com/3995469/174605165-00d0c577-7045-4ac6-8804-2b13e92a7979.png"/>
