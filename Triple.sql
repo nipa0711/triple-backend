@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost
--- 생성 시간: 22-06-18 22:54
+-- 생성 시간: 22-06-20 19:52
 -- 서버 버전: 5.5.68-MariaDB
 -- PHP 버전: 7.4.9
 
@@ -24,6 +24,9 @@ SET time_zone = "+00:00";
 
 -- --------------------------------------------------------
 
+CREATE SCHEMA `triple` DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci ;
+USE triple;
+
 --
 -- 테이블 구조 `histories`
 --
@@ -43,9 +46,8 @@ CREATE TABLE `histories` (
 --
 
 CREATE TABLE `photos` (
-  `photoId` varchar(200) NOT NULL,
-  `userId` varchar(50) NOT NULL,
-  `placeId` varchar(50) NOT NULL,
+  `photoId` varchar(50) NOT NULL,
+  `reviewId` varchar(50) NOT NULL,
   `registerTime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
@@ -56,10 +58,9 @@ CREATE TABLE `photos` (
 --
 
 CREATE TABLE `reviews` (
-  `reviewIdx` int(11) NOT NULL COMMENT 'review index',
-  `userId` varchar(50) NOT NULL COMMENT 'review owner',
   `reviewId` varchar(50) NOT NULL COMMENT 'UUID format review id',
   `content` text NOT NULL COMMENT 'content',
+  `userId` varchar(50) NOT NULL COMMENT 'review owner',
   `placeId` varchar(50) NOT NULL COMMENT 'UUID format place id',
   `isPhotoExist` tinyint(1) NOT NULL DEFAULT '0' COMMENT 'photo is existed or not',
   `createdTime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'review created time'
@@ -93,14 +94,13 @@ ALTER TABLE `histories`
 -- 테이블의 인덱스 `photos`
 --
 ALTER TABLE `photos`
-  ADD UNIQUE KEY `photoId` (`photoId`),
-  ADD KEY `userId` (`userId`);
+  ADD KEY `reviewId` (`reviewId`);
 
 --
 -- 테이블의 인덱스 `reviews`
 --
 ALTER TABLE `reviews`
-  ADD PRIMARY KEY (`reviewIdx`),
+  ADD PRIMARY KEY (`reviewId`) USING BTREE,
   ADD KEY `userId` (`userId`);
 
 --
@@ -119,12 +119,6 @@ ALTER TABLE `users`
 --
 ALTER TABLE `histories`
   MODIFY `idx` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- 테이블의 AUTO_INCREMENT `reviews`
---
-ALTER TABLE `reviews`
-  MODIFY `reviewIdx` int(11) NOT NULL AUTO_INCREMENT COMMENT 'review index';
 
 --
 -- 테이블의 AUTO_INCREMENT `users`
@@ -146,13 +140,13 @@ ALTER TABLE `histories`
 -- 테이블의 제약사항 `photos`
 --
 ALTER TABLE `photos`
-  ADD CONSTRAINT `photos_ibfk_1` FOREIGN KEY (`userId`) REFERENCES `users` (`userId`);
+  ADD CONSTRAINT `photos_ibfk_1` FOREIGN KEY (`reviewId`) REFERENCES `reviews` (`reviewId`);
 
 --
 -- 테이블의 제약사항 `reviews`
 --
 ALTER TABLE `reviews`
-  ADD CONSTRAINT `userId` FOREIGN KEY (`userId`) REFERENCES `users` (`userId`);
+  ADD CONSTRAINT `reviews_ibfk_1` FOREIGN KEY (`userId`) REFERENCES `users` (`userId`);
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

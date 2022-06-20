@@ -6,8 +6,7 @@ import lombok.Data;
 
 @Data
 public class Photo {
-    private String userId;
-    private String placeId;
     private String photoId;
+    private String reviewId;
     private Date registerTime;
 }

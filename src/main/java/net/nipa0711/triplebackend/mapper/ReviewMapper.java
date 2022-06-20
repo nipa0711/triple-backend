@@ -16,24 +16,23 @@ import net.nipa0711.triplebackend.model.Review;
 
 @Mapper
 public interface ReviewMapper {
-    @Insert("INSERT INTO photos (photoId, userId, placeId) VALUES (#{photoId}, #{userId}, #{placeId})")
+    @Insert("INSERT INTO photos (photoId, reviewId) VALUES (#{photoId}, #{reviewId})")
     boolean uploadPhoto(final Photo photo);
 
-    @Insert("INSERT INTO reviews (userId, reviewId, content, placeId, isPhotoExist) VALUES(#{userId},#{reviewId},#{content},#{placeId},#{isPhotoExist})")
-    @Options(useGeneratedKeys = true, keyProperty = "reviewIdx")
+    @Insert("INSERT INTO reviews (reviewId, content, userId, placeId, isPhotoExist) VALUES(#{reviewId},#{content},#{userId},#{placeId},#{isPhotoExist})")
     int createReview(final Review review);
 
-    @Update("UPDATE reviews SET content = #{content}, isPhotoExist = #{isPhotoExist} WHERE userId = #{userId} AND placeId = #{placeId}")
+    @Update("UPDATE reviews SET content = #{content}, isPhotoExist = #{isPhotoExist} WHERE reviewId = #{reviewId}")
     int updateReview(final Review review);
 
-    @Delete("DELETE FROM reviews WHERE reviewIdx = #{reviewIdx}")
-    int deleteReview(int reviewIdx);
+    @Delete("DELETE FROM reviews WHERE reviewId = #{reviewId}")
+    int deleteReview(String reviewId);
 
-    @Select("SELECT * FROM reviews WHERE reviewIdx = #{reviewIdx}")
-    Review getMyReview(int reviewIdx);
+    @Select("SELECT * FROM reviews WHERE reviewId = #{reviewId}")
+    Review getMyReview(String reviewId);
 
-    @Select("SELECT COUNT(*) FROM reviews WHERE userId = #{userId} AND placeId = #{placeId}")
-    int isReviewRegistered(@Param("userId")String userId, @Param("placeId")String placeId);
+    @Select("SELECT COUNT(*) FROM reviews WHERE reviewId = #{reviewId}")
+    int isReviewRegistered(@Param("reviewId")String reviewId);
 
     @Select("SELECT COUNT(*) FROM reviews WHERE placeId = #{placeId}")
     int addedReviewCount(@Param("placeId")String placeId);
@@ -41,24 +40,21 @@ public interface ReviewMapper {
     @Select("SELECT COUNT(*) FROM photos WHERE photoId = #{photoId}")
     int isPhotoExist(@Param("photoId")String photoId);
 
-    @Select("SELECT photoId FROM photos WHERE userId = #{userId} AND placeId = #{placeId} ORDER BY registerTime ASC")
-    List<String> getPhotoList(@Param("userId")String userId, @Param("placeId")String placeId);
+    @Select("SELECT photoId FROM photos WHERE reviewId = #{reviewId} ORDER BY registerTime ASC")
+    List<String> getPhotoList(@Param("reviewId")String reviewId);
 
     @Insert("INSERT INTO histories (userId, point, content) VALUES (#{userId}, #{point}, #{content})")
     @Options(useGeneratedKeys = true, keyProperty = "idx")
     int createHistory(final History history);
 
-    @Select("SELECT reviewIdx FROM reviews WHERE userId = #{userId} AND placeId = #{placeId}")
-    int findMyReviewIndex(String userId, String placeId);
-
-    @Delete("DELETE FROM photos WHERE userId = #{userId} AND placeId = #{placeId}")
-    int deletePhoto(String userId, String placeId);
+    @Delete("DELETE FROM photos WHERE reviewId = #{reviewId}")
+    int deletePhotosFromReview(String reviewId);
 
     @Delete("DELETE FROM photos WHERE photoId = #{photoId}")
     int deletePhotoByPhotoId(String photoId);
 
-    @Select("SELECT reviewIdx FROM reviews WHERE placeId = #{placeId} ORDER BY createdTime ASC LIMIT 1")
-    int getFirstReview(String placeId);
+    @Select("SELECT reviewId FROM reviews WHERE placeId = #{placeId} ORDER BY createdTime ASC LIMIT 1")
+    String getFirstReview(String placeId);
 
     @Select("SELECT * FROM histories WHERE userId = #{userId} ORDER BY time ASC")
     List<History> getHistory(String userId);

@@ -56,6 +56,10 @@ public class ReviewServiceImpl implements ReviewService {
 
     @Override
     public String createReview(ReviewRequest reviewRequest) {
+        String reviewId = reviewRequest.getReviewId();
+        if (reviewId == null || "".equals(reviewId)) {
+            return "Failed : reviewId is null or empty";
+        }
         String userId = reviewRequest.getUserId();
         if (userId == null || "".equals(userId)) {
             return "Failed : userId is null or empty";
@@ -88,8 +92,9 @@ public class ReviewServiceImpl implements ReviewService {
             }
             System.out.println("currentPoint : " + currentPoint);
 
-            if (isReviewRegistered(userId, placeId) == 1) {
-                resultMsg = "User can only added one review per one place";
+            // If review is exist.
+            if (isReviewRegistered(reviewId) != 0) {
+                resultMsg = "Try to add duplicated review.";
                 System.out.println("resultMsg : " + resultMsg);
                 throw new RuntimeException();
             }
@@ -104,9 +109,6 @@ public class ReviewServiceImpl implements ReviewService {
                 review.setPhotoExist(false);
             } else {
                 // If photo is existed.
-                Photo photo = new Photo();
-                photo.setUserId(userId);
-                photo.setPlaceId(placeId);
                 review.setPhotoExist(true);
                 // Pre-test for duplicate photo is existed.
                 for (String photoId : photos) {
@@ -116,21 +118,29 @@ public class ReviewServiceImpl implements ReviewService {
                         throw new RuntimeException();
                     }
                 }
-                // Add photos.
-                for (String photoId : photos) {
-                    photo.setPhotoId(photoId);
-                    uploadPhoto(photo);
-                }
-                newPoint++;
             }
 
             int createdResult = reviewMapper.createReview(review);
             System.out.println("createdResult : " + createdResult);
+
+            if (review.isPhotoExist()) {
+                // Add photos.
+                Photo photo = new Photo();
+                photo.setReviewId(reviewId);
+                for (String photoId : photos) {
+                    photo.setPhotoId(photoId);
+                    uploadPhoto(photo);
+                }
+                // Point for add photo.
+                newPoint++;
+            }
+
+            // Point for add review.
             newPoint++;
 
             History history = new History();
             history.setUserId(userId);
-            String reviewContent = "Added new review about : " + placeId;
+            String reviewContent = "Added new review about : " + placeId + " reviewId : " + reviewId;
             if (newPoint == 1) {
                 currentPoint += newPoint;
                 reviewContent = reviewContent + " with text only. Point is " + currentPoint;
@@ -148,7 +158,7 @@ public class ReviewServiceImpl implements ReviewService {
                 // Added first.
                 currentPoint++;
                 history.setPoint(currentPoint);
-                history.setContent("First review about " + placeId + " bonus. Point is " + currentPoint);
+                history.setContent("First review about : " + placeId + " bonus. Point is " + currentPoint);
                 createHistory(history);
             }
             userMapper.updateUserPoint(currentPoint, userId);
@@ -163,6 +173,10 @@ public class ReviewServiceImpl implements ReviewService {
 
     @Override
     public String updateReview(ReviewRequest reviewRequest) {
+        String reviewId = reviewRequest.getReviewId();
+        if (reviewId == null || "".equals(reviewId)) {
+            return "Failed : reviewId is null or empty";
+        }
         String userId = reviewRequest.getUserId();
         if (userId == null || "".equals(userId)) {
             return "Failed : userId is null or empty";
@@ -178,49 +192,44 @@ public class ReviewServiceImpl implements ReviewService {
 
         String resultMsg = "Unknown Error!";
         try {
-            int reviewIdx = findMyReviewIndex(userId, placeId);
-            if (reviewIdx < 1) {
-                return "Failed : Can not find registered review.";
-            }
             // Get my review.
-            Review review = getMyReview(reviewIdx);
+            Review review = getMyReview(reviewId);
             if (review == null) {
                 resultMsg = "Can't get my review.";
                 System.out.println("resultMsg : " + resultMsg);
                 throw new RuntimeException();
             }
-            System.out.println("my registered review : " + review);
 
             if (!userId.equals(review.getUserId())) {
                 resultMsg = "Can't modify different user's review.";
                 System.out.println("resultMsg : " + resultMsg);
                 throw new RuntimeException();
             }
+            System.out.println("my registered review : " + review);
 
             int newPoint = 0;
             String historyComment = "";
 
             List<String> attachedPhotos = reviewRequest.getAttachedPhotoIds();
-            List<String> registeredPhotos = getPhotoList(userId, placeId);
+            List<String> registeredPhotos = getPhotoList(reviewId);
             if (!review.isPhotoExist() && attachedPhotos != null && !attachedPhotos.isEmpty()) {
                 // Register new photos.
                 for (String photoId : attachedPhotos) {
                     Photo photo = new Photo();
-                    photo.setUserId(userId);
-                    photo.setPlaceId(placeId);
+                    photo.setReviewId(reviewId);
                     photo.setPhotoId(photoId);
                     uploadPhoto(photo);
                 }
-                historyComment = "Uploaded photo! reviewIdx : " + reviewIdx;
+                historyComment = "Uploaded photo! Place : " + placeId + " reviewId : " + reviewId;
                 review.setPhotoExist(true);
                 newPoint++;
             } else if (review.isPhotoExist()) {
                 // Photo is registered in db.
                 if (attachedPhotos == null || attachedPhotos.isEmpty()) {
                     // Remove photos from db.
-                    int deletePhotoResult = deletePhoto(userId, placeId);
+                    int deletePhotoResult = deletePhotosFromReview(reviewId);
                     System.out.println("deletePhotoResult : " + deletePhotoResult);
-                    historyComment = "Delete photo from review! reviewIdx : " + reviewIdx;
+                    historyComment = "Delete photo from review! Place : " + placeId + " reviewId : " + reviewId;
 
                     review.setPhotoExist(false);
                     newPoint--;
@@ -250,8 +259,7 @@ public class ReviewServiceImpl implements ReviewService {
                     // Register new photos to DB.
                     for (String photoId : needToAddPhotos) {
                         Photo photo = new Photo();
-                        photo.setUserId(userId);
-                        photo.setPlaceId(placeId);
+                        photo.setReviewId(reviewId);
                         photo.setPhotoId(photoId);
                         uploadPhoto(photo);
                     }
@@ -286,7 +294,10 @@ public class ReviewServiceImpl implements ReviewService {
 
     @Override
     public String deleteReview(ReviewRequest reviewRequest) {
-        String resultMsg = "Unknown Error!";
+        String reviewId = reviewRequest.getReviewId();
+        if (reviewId == null || "".equals(reviewId)) {
+            return "Failed : reviewId is null or empty";
+        }
         String userId = reviewRequest.getUserId();
         if (userId == null || "".equals(userId)) {
             return "Failed : userId is null or empty";
@@ -296,17 +307,13 @@ public class ReviewServiceImpl implements ReviewService {
             return "Failed : placeId is null or empty";
         }
 
-        int reviewIdx = findMyReviewIndex(userId, placeId);
-        System.out.println("reviewIdx : " + reviewIdx);
-        try {
-            if (reviewIdx < 1) {
-                return "Failed : Can not find registered review.";
-            }
+        String resultMsg = "Unknown Error!";
 
+        try {
             int minusPoint = 0;
 
             // Get my review.
-            Review review = getMyReview(reviewIdx);
+            Review review = getMyReview(reviewId);
             if (review == null) {
                 resultMsg = "Can't get my review";
                 System.out.println("resultMsg : " + resultMsg);
@@ -315,22 +322,22 @@ public class ReviewServiceImpl implements ReviewService {
 
             // Remove registed photos.
             if (review.isPhotoExist()) {
-                int deletePhotoResult = deletePhoto(userId, placeId);
+                int deletePhotoResult = deletePhotosFromReview(reviewId);
                 System.out.println("deletePhotoResult : " + deletePhotoResult);
                 minusPoint++;
             }
 
             // Check registered review is first review.
-            int getFirstReviewIdx = getFirstReview(placeId);
-            if (reviewIdx == getFirstReviewIdx) {
+            String getFirstReviewId = getFirstReview(placeId);
+            if (reviewId.equals(getFirstReviewId)) {
                 minusPoint++;
             }
 
             // Delete review.
-            int deleteReviewResult = reviewMapper.deleteReview(reviewIdx);
+            int deleteReviewResult = reviewMapper.deleteReview(reviewId);
             System.out.println("deleteReviewResult : " + deleteReviewResult);
 
-            int count = isReviewRegistered(userId, placeId);
+            int count = isReviewRegistered(reviewId);
             if (count != 0) {
                 resultMsg = "Review was not deleted";
                 System.out.println("resultMsg : " + resultMsg);
@@ -351,13 +358,12 @@ public class ReviewServiceImpl implements ReviewService {
             userMapper.updateUserPoint(totalPoint, userId);
 
             // Create point history.
-            String hitoryContent = "Deleted review about " + placeId + " Point is " + totalPoint;
+            String hitoryContent = "Deleted review : " + reviewId + " Point is " + totalPoint;
             History history = new History();
             history.setContent(hitoryContent);
             history.setPoint(totalPoint);
             history.setUserId(userId);
             createHistory(history);
-
         } catch (Exception e) {
             e.printStackTrace();
             return resultMsg;
@@ -387,13 +393,13 @@ public class ReviewServiceImpl implements ReviewService {
     }
 
     @Override
-    public int deletePhoto(String userId, String placeId) {
-        return reviewMapper.deletePhoto(userId, placeId);
+    public int deletePhotosFromReview(String reviewId) {
+        return reviewMapper.deletePhotosFromReview(reviewId);
     }
 
     @Override
-    public int isReviewRegistered(String userId, String placeId) {
-        return reviewMapper.isReviewRegistered(userId, placeId);
+    public int isReviewRegistered(String reviewId) {
+        return reviewMapper.isReviewRegistered(reviewId);
     }
 
     @Override
@@ -412,23 +418,18 @@ public class ReviewServiceImpl implements ReviewService {
     }
 
     @Override
-    public int findMyReviewIndex(String userId, String placeId) {
-        return reviewMapper.findMyReviewIndex(userId, placeId);
-    }
-
-    @Override
-    public int getFirstReview(String placeId) {
+    public String getFirstReview(String placeId) {
         return reviewMapper.getFirstReview(placeId);
     }
 
     @Override
-    public Review getMyReview(int reviewIdx) {
-        return reviewMapper.getMyReview(reviewIdx);
+    public Review getMyReview(String reviewId) {
+        return reviewMapper.getMyReview(reviewId);
     }
 
     @Override
-    public List<String> getPhotoList(String userId, String placeId) {
-        return reviewMapper.getPhotoList(userId, placeId);
+    public List<String> getPhotoList(String reviewId) {
+        return reviewMapper.getPhotoList(reviewId);
     }
 
     @Override

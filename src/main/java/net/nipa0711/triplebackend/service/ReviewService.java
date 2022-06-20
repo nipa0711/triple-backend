@@ -16,19 +16,17 @@ public interface ReviewService {
 
     String createReview(ReviewRequest reviewRequest);
 
-    int findMyReviewIndex(String userId, String placeId);
-
-    int isReviewRegistered(String userId, String placeId);
+    int isReviewRegistered(String reviewId);
 
     int addedReviewCount(String placeId);
 
-    int getFirstReview(String placeId);    
+    String getFirstReview(String placeId);    
 
     String updateReview(ReviewRequest reviewRequest);
 
     String deleteReview(ReviewRequest reviewRequest);
 
-    Review getMyReview(int reviewIdx);
+    Review getMyReview(String reviewId);
 
     // About User.
 
@@ -44,11 +42,11 @@ public interface ReviewService {
 
     boolean uploadPhoto(Photo photo);
 
-    int deletePhoto(String userId, String placeId);
+    int deletePhotosFromReview(String reviewId);
 
     int deletePhotoByPhotoId(String photoId);
 
-    List<String> getPhotoList(String userId, String placeId);
+    List<String> getPhotoList(String reviewId);
 
     // About history.
 
