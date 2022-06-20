@@ -28,6 +28,13 @@ public class ReviewServiceImpl implements ReviewService {
 
     @Override
     public String processReview(ReviewRequest reviewRequest) {
+        String type = reviewRequest.getType();
+        if (type == null || "".equals(type)) {
+            return "type value can not be null or empty";
+        }
+        if (!"REVIEW".equals(type)) {
+            return "Not review event.";
+        }
         String action = reviewRequest.getAction();
         if (action == null || "".equals(action)) {
             return "action value can not be null or empty";
